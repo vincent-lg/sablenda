@@ -1,0 +1,9 @@
+[project]
+name = "agenda"
+version = "0.1.0"
+description = "An accessible agenda"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "wxpython>=4.2.4",
+]
