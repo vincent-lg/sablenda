@@ -47,13 +47,17 @@ class Entry:
             return delta % 7 == 0
         elif self.recurrence == RecurrenceType.MONTHLY:
             # Occurs on the same day of each month
-            return (check_date.day == self.entry_date.day and
-                    check_date >= self.entry_date)
+            return (
+                check_date.day == self.entry_date.day
+                and check_date >= self.entry_date
+            )
         elif self.recurrence == RecurrenceType.YEARLY:
             # Occurs on the same month and day each year
-            return (check_date.month == self.entry_date.month and
-                    check_date.day == self.entry_date.day and
-                    check_date >= self.entry_date)
+            return (
+                check_date.month == self.entry_date.month
+                and check_date.day == self.entry_date.day
+                and check_date >= self.entry_date
+            )
 
         return False
 
@@ -73,4 +77,7 @@ class TimedEvent(Entry):
     def get_display_text(self) -> str:
         """Get the text to display for this event including time."""
         title = super().get_display_text()
-        return f"{self.start_time.strftime('%H:%M')}-{self.end_time.strftime('%H:%M')} {title}"
+        return (
+            f"{self.start_time.strftime('%H:%M')}-"
+            f"{self.end_time.strftime('%H:%M')} {title}"
+        )

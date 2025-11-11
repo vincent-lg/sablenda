@@ -4,45 +4,115 @@ from datetime import date, timedelta
 from uuid import UUID
 
 from sablenda.data.models import Entry, FullDayEntry, TimedEvent
+from sablenda.domain.repository import ICalendarRepository
 
 
 class CalendarData:
-    """Manages calendar entries."""
+    """Manages calendar entries using a repository for persistence."""
 
-    def __init__(self):
-        """Initialize an empty calendar."""
-        self.entries: list[Entry] = []
+    def __init__(self, repository: ICalendarRepository | None = None):
+        """
+        Initialize the calendar with a repository.
+
+        Args:
+            repository: The repository to use for persistence.
+                       If None, maintains in-memory list (legacy mode).
+        """
+        self.repository = repository
+        self._entries_cache: list[Entry] | None = None
+
+    @property
+    def entries(self) -> list[Entry]:
+        """Get all entries.
+
+        This property is maintained for backward compatibility with existing code.
+        If a repository is used, it fetches entries from the repository.
+        Otherwise, it uses the in-memory cache.
+
+        """
+        if self.repository is not None:
+            return self.repository.get_all()
+        if self._entries_cache is None:
+            self._entries_cache = []
+        return self._entries_cache
+
+    @entries.setter
+    def entries(self, value: list[Entry]) -> None:
+        """Set entries list (for backward compatibility with pickle loading).
+
+        Args:
+            value: List of entries to set
+
+        """
+        if self.repository is not None:
+            # If using repository, clear and re-add all entries
+            for entry in value:
+                self.repository.add(entry)
+            self.repository.save_changes()
+        else:
+            self._entries_cache = value
 
     def add_entry(self, entry: Entry) -> None:
         """Add an entry to the calendar."""
-        self.entries.append(entry)
+        if self.repository is not None:
+            self.repository.add(entry)
+            self.repository.save_changes()
+        else:
+            if self._entries_cache is None:
+                self._entries_cache = []
+            self._entries_cache.append(entry)
 
     def remove_entry(self, entry_id: UUID) -> bool:
         """Remove an entry by ID. Returns True if found and removed."""
-        for i, entry in enumerate(self.entries):
-            if entry.id == entry_id:
-                self.entries.pop(i)
-                return True
-        return False
+        if self.repository is not None:
+            result = self.repository.remove(entry_id)
+            if result:
+                self.repository.save_changes()
+            return result
+        else:
+            if self._entries_cache is None:
+                return False
+            for i, entry in enumerate(self._entries_cache):
+                if entry.id == entry_id:
+                    self._entries_cache.pop(i)
+                    return True
+            return False
 
     def get_entry(self, entry_id: UUID) -> Entry | None:
         """Get an entry by ID."""
-        for entry in self.entries:
-            if entry.id == entry_id:
-                return entry
-        return None
+        if self.repository is not None:
+            return self.repository.get_by_id(entry_id)
+        else:
+            if self._entries_cache is None:
+                return None
+            for entry in self._entries_cache:
+                if entry.id == entry_id:
+                    return entry
+            return None
 
     def update_entry(self, entry: Entry) -> bool:
         """Update an existing entry. Returns True if found and updated."""
-        for i, existing in enumerate(self.entries):
-            if existing.id == entry.id:
-                self.entries[i] = entry
-                return True
-        return False
+        if self.repository is not None:
+            result = self.repository.update(entry)
+            if result:
+                self.repository.save_changes()
+            return result
+        else:
+            if self._entries_cache is None:
+                return False
+            for i, existing in enumerate(self._entries_cache):
+                if existing.id == entry.id:
+                    self._entries_cache[i] = entry
+                    return True
+            return False
 
     def get_entries_for_date(self, check_date: date) -> list[Entry]:
         """Get all entries that occur on the given date."""
-        return [entry for entry in self.entries if entry.occurs_on(check_date)]
+        if self.repository is not None:
+            return self.repository.get_entries_for_date(check_date)
+        else:
+            entries = self.entries
+            return [entry for entry in entries if entry.occurs_on(check_date)]
 
     def has_entries_on_date(self, check_date: date) -> bool:
         """Check if there are any entries on the given date."""
@@ -53,12 +123,12 @@ class CalendarData:
         return len(self.get_entries_for_date(check_date))
 
     def get_month_days(self, year: int, month: int) -> list[date]:
-        """
-        Get all days to display for a month view.
+        """Get all days to display for a month view.
 
         Returns a list of dates starting from the Monday of the week containing
         the first day of the month, and ending with the Sunday of the week
         containing the last day of the month.
+
         """
         # First day of the month
         first_day = date(year, month, 1)

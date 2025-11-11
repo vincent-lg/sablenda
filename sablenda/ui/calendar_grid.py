@@ -1,8 +1,9 @@
 """Calendar grid UI component."""
 
 import calendar
-import wx
 from datetime import date, timedelta
+
+import wx
 
 from sablenda.data.calendar import CalendarData
 from sablenda.ui.entry_dialog import EntryDialog
@@ -16,6 +17,7 @@ class DayButtonAccessible(wx.Accessible):
 
         Args:
             button: The DayButton this accessible object is for
+
         """
         super().__init__(button)
         self.button = button
@@ -28,6 +30,7 @@ class DayButtonAccessible(wx.Accessible):
 
         Returns:
             Tuple of (result_code, name_string)
+
         """
         if child_id == wx.ACC_SELF:
             # Format: "Monday, November 4th 2025"
@@ -60,6 +63,7 @@ class DayButtonAccessible(wx.Accessible):
 
         Returns:
             Tuple of (result_code, role)
+
         """
         if child_id == wx.ACC_SELF:
             return wx.ACC_OK, wx.ROLE_SYSTEM_PUSHBUTTON
@@ -76,6 +80,7 @@ class DayButton(wx.Button):
             parent: Parent window
             day_date: The date this button represents
             is_current_month: Whether this day is in the currently displayed month
+
         """
         super().__init__(parent, label=str(day_date.day))
         self.day_date = day_date
@@ -141,6 +146,7 @@ class CalendarGrid(wx.Panel):
         Args:
             parent: Parent window
             calendar_data: The calendar data model
+
         """
         super().__init__(parent)
         self.calendar_data = calendar_data
@@ -190,6 +196,8 @@ class CalendarGrid(wx.Panel):
 
     def _update_calendar_display(self) -> None:
         """Update the calendar to show the current month."""
+        self.Freeze()
+
         # Update month label
         month_name = calendar.month_name[self.current_date.month]
         self.month_label.SetLabel(f"{month_name} {self.current_date.year}")
@@ -237,6 +245,7 @@ class CalendarGrid(wx.Panel):
                     btn.SetFocus()
                     break
 
+        self.Thaw()
     def _on_day_clicked(self, event: wx.Event) -> None:
         """Handle day button click."""
         btn = event.GetEventObject()

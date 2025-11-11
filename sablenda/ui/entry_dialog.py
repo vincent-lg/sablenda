@@ -17,6 +17,7 @@ class TimeInput(wx.TextCtrl):
         Args:
             parent: Parent window
             initial_time: Initial time value
+
         """
         if initial_time is None:
             initial_time = time(9, 0)
@@ -65,8 +66,10 @@ class TimeInput(wx.TextCtrl):
 
         Returns:
             time object or None if invalid
+
         """
         time_str = self.GetValue().strip()
+
         try:
             # Parse HH:MM format
             parts = time_str.split(':')
@@ -77,6 +80,7 @@ class TimeInput(wx.TextCtrl):
                     return time(hours, minutes)
         except (ValueError, IndexError):
             pass
+
         return None
 
     def set_time(self, t: time) -> None:
@@ -84,6 +88,7 @@ class TimeInput(wx.TextCtrl):
 
         Args:
             t: Time to set
+
         """
         self.SetValue(f"{t.hour:02d}:{t.minute:02d}")
 
@@ -98,6 +103,7 @@ class EntryDialog(wx.Dialog):
             parent: Parent window
             day_date: The date being edited
             calendar_data: The calendar data model
+
         """
         super().__init__(
             parent,
@@ -226,6 +232,7 @@ class EntryEditDialog(wx.Dialog):
             parent: Parent window
             entry: The entry to edit
             is_new: Whether this is a new entry
+
         """
         title = "New Entry" if is_new else "Edit Entry"
         super().__init__(parent, title=title, size=(500, 400))
@@ -310,8 +317,6 @@ class EntryEditDialog(wx.Dialog):
         """Load entry data into the controls."""
         self.title_ctrl.SetValue(self.entry.title)
         self.desc_ctrl.SetValue(self.entry.description)
-
-        # Time controls are already initialized with the entry times in _create_ui
 
         # Set recurrence
         recurrence_map = {

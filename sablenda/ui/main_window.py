@@ -1,9 +1,11 @@
 """Main application window."""
 
 import wx
+import wx.adv
 
 from sablenda.data.calendar import CalendarData
-from sablenda.storage.pickle_storage import PickleStorage
+from sablenda.infrastructure.database import DatabaseConfig
+from sablenda.infrastructure.sqlalchemy_repository import SqlAlchemyCalendarRepository
 from sablenda.ui.calendar_grid import CalendarGrid
 
 
@@ -18,9 +20,12 @@ class MainWindow(wx.Frame):
             size=(800, 700)
         )
 
-        # Initialize storage and load data
-        self.storage = PickleStorage()
-        self.calendar_data = self.storage.load()
+        # Initialize database and repository
+        self.db_config = DatabaseConfig()
+        self.repository = SqlAlchemyCalendarRepository(self.db_config)
+
+        # Initialize calendar data with repository
+        self.calendar_data = CalendarData(repository=self.repository)
 
         # Create UI
         self._create_ui()
@@ -66,8 +71,10 @@ class MainWindow(wx.Frame):
 
     def _on_save(self, event: wx.Event) -> None:
         """Handle save action."""
+        # With SQLAlchemy repository, data is automatically persisted
+        # This method is kept for UI consistency but just confirms the save
         try:
-            self.storage.save(self.calendar_data)
+            self.repository.save_changes()
             wx.MessageBox(
                 "Agenda saved successfully!",
                 "Save",
@@ -81,9 +88,12 @@ class MainWindow(wx.Frame):
             )
 
     def _on_close(self, event: wx.Event) -> None:
-        """Handle window close - save data and exit."""
+        """Handle window close - ensure data is saved and exit."""
         try:
-            self.storage.save(self.calendar_data)
+            # Ensure any pending changes are saved
+            self.repository.save_changes()
+            # Close the repository session
+            self.repository.close()
         except Exception as e:
             result = wx.MessageBox(
                 f"Error saving agenda: {e}\n\nExit anyway?",
@@ -99,7 +109,7 @@ class MainWindow(wx.Frame):
     def _on_about(self, event: wx.Event) -> None:
         """Show about dialog."""
         info = wx.adv.AboutDialogInfo()
-        info.SetName("Accessible Agenda")
+        info.SetName("Le Sablenda")
         info.SetVersion("1.0")
         info.SetDescription("An accessible calendar application built with wxPython")
         info.AddDeveloper("Created with Claude Code")
