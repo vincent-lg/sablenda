@@ -6,6 +6,7 @@ from datetime import date, timedelta
 import wx
 
 from sablenda.data.calendar import CalendarData
+from sablenda.i18n import get_i18n
 from sablenda.ui.entry_dialog import EntryDialog
 
 
@@ -33,23 +34,15 @@ class DayButtonAccessible(wx.Accessible):
 
         """
         if child_id == wx.ACC_SELF:
-            # Format: "Monday, November 4th 2025"
-            day_name = calendar.day_name[self.button.day_date.weekday()]
-            month_name = calendar.month_name[self.button.day_date.month]
+            i18n = get_i18n()
 
-            # Add ordinal suffix (1st, 2nd, 3rd, 4th, etc.)
-            day = self.button.day_date.day
-            if 10 <= day % 100 <= 20:
-                suffix = 'th'
-            else:
-                suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
-
-            accessible_text = f"{day_name}, {month_name} {day}{suffix} {self.button.day_date.year}"
+            # Format date using i18n
+            accessible_text = i18n.format_date_full(self.button.day_date)
 
             # Add entry count if present
             if self.button.entry_count > 0:
-                entry_word = "entry" if self.button.entry_count == 1 else "entries"
-                accessible_text += f", {self.button.entry_count} {entry_word}"
+                entry_count_text = i18n.translate("entry-count", count=self.button.entry_count)
+                accessible_text += f", {entry_count_text}"
 
             return wx.ACC_OK, accessible_text
 
@@ -111,27 +104,18 @@ class DayButton(wx.Button):
 
     def _update_accessible_label(self) -> None:
         """Update the visual label and tooltip."""
+        i18n = get_i18n()
+
         # Keep the visual label as just the day number
         self.SetLabel(str(self.day_date.day))
 
         # Set tooltip (the accessible name is handled by DayButtonAccessible)
-        # Format: "Monday, November 4th 2025"
-        day_name = calendar.day_name[self.day_date.weekday()]
-        month_name = calendar.month_name[self.day_date.month]
-
-        # Add ordinal suffix (1st, 2nd, 3rd, 4th, etc.)
-        day = self.day_date.day
-        if 10 <= day % 100 <= 20:
-            suffix = 'th'
-        else:
-            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
-
-        tooltip_text = f"{day_name}, {month_name} {day}{suffix} {self.day_date.year}"
+        tooltip_text = i18n.format_date_full(self.day_date)
 
         # Add entry count if present
         if self.entry_count > 0:
-            entry_word = "entry" if self.entry_count == 1 else "entries"
-            tooltip_text += f" ({self.entry_count} {entry_word})"
+            entry_count_text = i18n.translate("entry-count", count=self.entry_count)
+            tooltip_text += f" ({entry_count_text})"
 
         # Set as tooltip for mouse hover
         self.SetToolTip(tooltip_text)
@@ -159,6 +143,7 @@ class CalendarGrid(wx.Panel):
 
     def _create_ui(self) -> None:
         """Create the UI layout."""
+        i18n = get_i18n()
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # Month/Year label
@@ -170,25 +155,27 @@ class CalendarGrid(wx.Panel):
         main_sizer.Add(self.month_label, 0, wx.ALL | wx.CENTER, 10)
 
         # Grid for days
-        grid_sizer = wx.GridSizer(rows=7, cols=7, vgap=2, hgap=2)
+        self.grid_sizer = wx.GridSizer(rows=7, cols=7, vgap=2, hgap=2)
 
         # Add day headers (Mon, Tue, Wed, etc.)
-        for day_name in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']:
-            header = wx.StaticText(self, label=day_name)
+        self.day_headers = []
+        for day_key in ['day-mon', 'day-tue', 'day-wed', 'day-thu', 'day-fri', 'day-sat', 'day-sun']:
+            header = wx.StaticText(self, label=i18n.translate(day_key))
             header_font = header.GetFont()
             header_font = header_font.Bold()
             header.SetFont(header_font)
-            grid_sizer.Add(header, 0, wx.ALIGN_CENTER)
+            self.grid_sizer.Add(header, 0, wx.ALIGN_CENTER)
+            self.day_headers.append(header)
 
         # Create day buttons (will be populated later)
         # Create enough for 6 weeks (42 days)
         for i in range(42):
             btn = DayButton(self, date.today(), True)
             btn.Bind(wx.EVT_BUTTON, self._on_day_clicked)
-            grid_sizer.Add(btn, 1, wx.EXPAND)
+            self.grid_sizer.Add(btn, 1, wx.EXPAND)
             self.day_buttons.append(btn)
 
-        main_sizer.Add(grid_sizer, 1, wx.ALL | wx.EXPAND, 10)
+        main_sizer.Add(self.grid_sizer, 1, wx.ALL | wx.EXPAND, 10)
         self.SetSizer(main_sizer)
 
         # Bind keyboard navigation at the panel level using CHAR_HOOK
@@ -199,8 +186,9 @@ class CalendarGrid(wx.Panel):
         self.Freeze()
 
         # Update month label
-        month_name = calendar.month_name[self.current_date.month]
-        self.month_label.SetLabel(f"{month_name} {self.current_date.year}")
+        i18n = get_i18n()
+        month_label_text = i18n.format_month_year(self.current_date.month, self.current_date.year)
+        self.month_label.SetLabel(month_label_text)
 
         # Get all days to display
         days = self.calendar_data.get_month_days(
@@ -374,3 +362,23 @@ class CalendarGrid(wx.Panel):
     def refresh_display(self) -> None:
         """Refresh the calendar display (e.g., after adding/editing entries)."""
         self._update_calendar_display()
+
+    def refresh_ui(self) -> None:
+        """Refresh UI elements after language change."""
+        i18n = get_i18n()
+
+        # Update day headers
+        day_keys = ['day-mon', 'day-tue', 'day-wed', 'day-thu', 'day-fri', 'day-sat', 'day-sun']
+        for i, header in enumerate(self.day_headers):
+            header.SetLabel(i18n.translate(day_keys[i]))
+
+        # Update month label
+        month_label_text = i18n.format_month_year(self.current_date.month, self.current_date.year)
+        self.month_label.SetLabel(month_label_text)
+
+        # Update all day button tooltips and accessible labels
+        for btn in self.day_buttons:
+            if btn.IsShown():
+                btn._update_accessible_label()
+
+        self.Layout()

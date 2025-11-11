@@ -6,6 +6,7 @@ import wx
 
 from sablenda.data.calendar import CalendarData
 from sablenda.data.models import Entry, FullDayEntry, TimedEvent, RecurrenceType
+from sablenda.i18n import get_i18n
 
 
 class TimeInput(wx.TextCtrl):
@@ -105,9 +106,11 @@ class EntryDialog(wx.Dialog):
             calendar_data: The calendar data model
 
         """
+        i18n = get_i18n()
+        formatted_date = i18n.format_date_dialog_title(day_date)
         super().__init__(
             parent,
-            title=f"Entries for {day_date.strftime('%A, %B %d, %Y')}",
+            title=i18n.translate("entries-for-date", date=formatted_date),
             size=(600, 500)
         )
 
@@ -120,11 +123,12 @@ class EntryDialog(wx.Dialog):
 
     def _create_ui(self) -> None:
         """Create the dialog UI."""
+        i18n = get_i18n()
         panel = wx.Panel(self)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # List of entries
-        list_label = wx.StaticText(panel, label="Entries:")
+        list_label = wx.StaticText(panel, label=i18n.translate("entries-label"))
         main_sizer.Add(list_label, 0, wx.ALL, 5)
 
         self.entry_listbox = wx.ListBox(panel, style=wx.LB_SINGLE)
@@ -134,26 +138,26 @@ class EntryDialog(wx.Dialog):
         # Buttons for entry management
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.add_fullday_btn = wx.Button(panel, label="Add Full-Day Entry")
+        self.add_fullday_btn = wx.Button(panel, label=i18n.translate("btn-add-fullday"))
         self.add_fullday_btn.Bind(wx.EVT_BUTTON, self._on_add_fullday)
         button_sizer.Add(self.add_fullday_btn, 0, wx.ALL, 5)
 
-        self.add_timed_btn = wx.Button(panel, label="Add Timed Event")
+        self.add_timed_btn = wx.Button(panel, label=i18n.translate("btn-add-timed"))
         self.add_timed_btn.Bind(wx.EVT_BUTTON, self._on_add_timed)
         button_sizer.Add(self.add_timed_btn, 0, wx.ALL, 5)
 
-        self.edit_btn = wx.Button(panel, label="Edit")
+        self.edit_btn = wx.Button(panel, label=i18n.translate("btn-edit"))
         self.edit_btn.Bind(wx.EVT_BUTTON, self._on_edit_entry)
         button_sizer.Add(self.edit_btn, 0, wx.ALL, 5)
 
-        self.delete_btn = wx.Button(panel, label="Delete")
+        self.delete_btn = wx.Button(panel, label=i18n.translate("btn-delete"))
         self.delete_btn.Bind(wx.EVT_BUTTON, self._on_delete_entry)
         button_sizer.Add(self.delete_btn, 0, wx.ALL, 5)
 
         main_sizer.Add(button_sizer, 0, wx.ALL | wx.CENTER, 5)
 
         # Close button
-        close_btn = wx.Button(panel, wx.ID_CLOSE, "Close")
+        close_btn = wx.Button(panel, wx.ID_CLOSE, i18n.translate("btn-close"))
         close_btn.Bind(wx.EVT_BUTTON, lambda e: self.Close())
         main_sizer.Add(close_btn, 0, wx.ALL | wx.CENTER, 5)
 
@@ -212,9 +216,10 @@ class EntryDialog(wx.Dialog):
 
         entry = self.entry_listbox.GetClientData(selection)
         if entry:
+            i18n = get_i18n()
             result = wx.MessageBox(
-                f"Delete entry '{entry.get_display_text()}'?",
-                "Confirm Delete",
+                i18n.translate("confirm-delete", title=entry.get_display_text()),
+                i18n.translate("confirm-delete-title"),
                 wx.YES_NO | wx.ICON_QUESTION
             )
             if result == wx.YES:
@@ -234,7 +239,8 @@ class EntryEditDialog(wx.Dialog):
             is_new: Whether this is a new entry
 
         """
-        title = "New Entry" if is_new else "Edit Entry"
+        i18n = get_i18n()
+        title = i18n.translate("dialog-new-entry") if is_new else i18n.translate("dialog-edit-entry")
         super().__init__(parent, title=title, size=(500, 400))
 
         self.entry = entry
@@ -245,18 +251,19 @@ class EntryEditDialog(wx.Dialog):
 
     def _create_ui(self) -> None:
         """Create the dialog UI."""
+        i18n = get_i18n()
         panel = wx.Panel(self)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # Title
-        title_label = wx.StaticText(panel, label="Title:")
+        title_label = wx.StaticText(panel, label=i18n.translate("title-label"))
         main_sizer.Add(title_label, 0, wx.ALL, 5)
 
         self.title_ctrl = wx.TextCtrl(panel)
         main_sizer.Add(self.title_ctrl, 0, wx.ALL | wx.EXPAND, 5)
 
         # Description
-        desc_label = wx.StaticText(panel, label="Description:")
+        desc_label = wx.StaticText(panel, label=i18n.translate("description-label"))
         main_sizer.Add(desc_label, 0, wx.ALL, 5)
 
         self.desc_ctrl = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
@@ -266,34 +273,34 @@ class EntryEditDialog(wx.Dialog):
         if isinstance(self.entry, TimedEvent):
             time_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-            start_label = wx.StaticText(panel, label="Start time (HH:MM):")
+            start_label = wx.StaticText(panel, label=i18n.translate("start-time-label"))
             time_sizer.Add(start_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
 
             self.start_time_ctrl = TimeInput(panel, self.entry.start_time)
             time_sizer.Add(self.start_time_ctrl, 0, wx.ALL, 5)
 
-            end_label = wx.StaticText(panel, label="End time (HH:MM):")
+            end_label = wx.StaticText(panel, label=i18n.translate("end-time-label"))
             time_sizer.Add(end_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
 
             self.end_time_ctrl = TimeInput(panel, self.entry.end_time)
             time_sizer.Add(self.end_time_ctrl, 0, wx.ALL, 5)
 
-            hint_text = wx.StaticText(panel, label="(Use ↑↓ arrows to adjust by 15 min)")
+            hint_text = wx.StaticText(panel, label=i18n.translate("time-hint"))
             hint_text.SetForegroundColour(wx.Colour(100, 100, 100))
             time_sizer.Add(hint_text, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
 
             main_sizer.Add(time_sizer, 0, wx.ALL, 5)
 
         # Recurrence
-        recurrence_label = wx.StaticText(panel, label="Recurrence:")
+        recurrence_label = wx.StaticText(panel, label=i18n.translate("recurrence-label"))
         main_sizer.Add(recurrence_label, 0, wx.ALL, 5)
 
         recurrence_choices = [
-            "None",
-            "Daily",
-            "Weekly",
-            "Monthly",
-            "Yearly"
+            i18n.translate("recurrence-none"),
+            i18n.translate("recurrence-daily"),
+            i18n.translate("recurrence-weekly"),
+            i18n.translate("recurrence-monthly"),
+            i18n.translate("recurrence-yearly")
         ]
         self.recurrence_ctrl = wx.Choice(panel, choices=recurrence_choices)
         self.recurrence_ctrl.SetSelection(0)
@@ -302,11 +309,11 @@ class EntryEditDialog(wx.Dialog):
         # Buttons
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        ok_btn = wx.Button(panel, wx.ID_OK, "OK")
+        ok_btn = wx.Button(panel, wx.ID_OK, i18n.translate("btn-ok"))
         ok_btn.Bind(wx.EVT_BUTTON, self._on_ok)
         button_sizer.Add(ok_btn, 0, wx.ALL, 5)
 
-        cancel_btn = wx.Button(panel, wx.ID_CANCEL, "Cancel")
+        cancel_btn = wx.Button(panel, wx.ID_CANCEL, i18n.translate("btn-cancel"))
         button_sizer.Add(cancel_btn, 0, wx.ALL, 5)
 
         main_sizer.Add(button_sizer, 0, wx.ALL | wx.CENTER, 5)
@@ -338,9 +345,10 @@ class EntryEditDialog(wx.Dialog):
             end_time = self.end_time_ctrl.get_time()
 
             if start_time is None or end_time is None:
+                i18n = get_i18n()
                 wx.MessageBox(
-                    "Please enter valid times in HH:MM format (e.g., 09:00)",
-                    "Invalid Time",
+                    i18n.translate("invalid-time"),
+                    i18n.translate("invalid-time-title"),
                     wx.OK | wx.ICON_ERROR
                 )
                 return
