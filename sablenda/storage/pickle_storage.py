@@ -1,8 +1,9 @@
 """Pickle-based storage for the agenda."""
+
 import pickle
 from pathlib import Path
 
-from agenda.data.calendar import CalendarData
+from sablenda.data.calendar import CalendarData
 
 
 class PickleStorage:

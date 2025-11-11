@@ -1,4 +1,4 @@
-# Accessible Agenda
+# Sablenda: an accessible Agenda
 
 An accessible calendar application written in Python using wxPython, designed with screen reader support.
 

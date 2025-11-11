@@ -1,8 +1,9 @@
 """Calendar data management."""
+
 from datetime import date, timedelta
 from uuid import UUID
 
-from agenda.data.models import Entry, FullDayEntry, TimedEvent
+from sablenda.data.models import Entry, FullDayEntry, TimedEvent
 
 
 class CalendarData:

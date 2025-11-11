@@ -1,10 +1,11 @@
 """Dialog for viewing and editing day entries."""
-import wx
-import wx.adv
+
 from datetime import date, time
 
-from agenda.data.calendar import CalendarData
-from agenda.data.models import Entry, FullDayEntry, TimedEvent, RecurrenceType
+import wx
+
+from sablenda.data.calendar import CalendarData
+from sablenda.data.models import Entry, FullDayEntry, TimedEvent, RecurrenceType
 
 
 class TimeInput(wx.TextCtrl):

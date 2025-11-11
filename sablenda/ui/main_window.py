@@ -1,9 +1,10 @@
 """Main application window."""
+
 import wx
 
-from agenda.data.calendar import CalendarData
-from agenda.storage.pickle_storage import PickleStorage
-from agenda.ui.calendar_grid import CalendarGrid
+from sablenda.data.calendar import CalendarData
+from sablenda.storage.pickle_storage import PickleStorage
+from sablenda.ui.calendar_grid import CalendarGrid
 
 
 class MainWindow(wx.Frame):
@@ -13,7 +14,7 @@ class MainWindow(wx.Frame):
         """Initialize the main window."""
         super().__init__(
             None,
-            title="Accessible Agenda",
+            title="Le Sablenda",
             size=(800, 700)
         )
 

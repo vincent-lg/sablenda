@@ -1,2 +1,2 @@
 @echo off
-uv run python -m agenda
+uv run python -m sablenda

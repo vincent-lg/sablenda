@@ -1,5 +1,5 @@
 [project]
-name = "agenda"
+name = "sablenda"
 version = "0.1.0"
 description = "An accessible agenda"
 readme = "README.md"

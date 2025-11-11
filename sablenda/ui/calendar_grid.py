@@ -1,10 +1,11 @@
 """Calendar grid UI component."""
+
 import calendar
 import wx
 from datetime import date, timedelta
 
-from agenda.data.calendar import CalendarData
-from agenda.ui.entry_dialog import EntryDialog
+from sablenda.data.calendar import CalendarData
+from sablenda.ui.entry_dialog import EntryDialog
 
 
 class DayButtonAccessible(wx.Accessible):

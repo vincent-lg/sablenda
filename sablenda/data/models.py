@@ -1,4 +1,5 @@
 """Data models for agenda entries."""
+
 from dataclasses import dataclass, field
 from datetime import date, time, timedelta
 from enum import Enum

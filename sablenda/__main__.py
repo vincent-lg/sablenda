@@ -2,7 +2,7 @@
 
 import wx
 
-from agenda.ui.main_window import MainWindow
+from sablenda.ui.main_window import MainWindow
 
 
 def main():
