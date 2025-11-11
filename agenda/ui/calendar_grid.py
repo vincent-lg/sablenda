@@ -1,7 +1,7 @@
 """Calendar grid UI component."""
 import calendar
 import wx
-from datetime import date
+from datetime import date, timedelta
 
 from agenda.data.calendar import CalendarData
 from agenda.ui.entry_dialog import EntryDialog
@@ -178,12 +178,14 @@ class CalendarGrid(wx.Panel):
         for i in range(42):
             btn = DayButton(self, date.today(), True)
             btn.Bind(wx.EVT_BUTTON, self._on_day_clicked)
-            btn.Bind(wx.EVT_KEY_DOWN, self._on_key_down)
             grid_sizer.Add(btn, 1, wx.EXPAND)
             self.day_buttons.append(btn)
 
         main_sizer.Add(grid_sizer, 1, wx.ALL | wx.EXPAND, 10)
         self.SetSizer(main_sizer)
+
+        # Bind keyboard navigation at the panel level using CHAR_HOOK
+        self.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook)
 
     def _update_calendar_display(self) -> None:
         """Update the calendar to show the current month."""
@@ -244,8 +246,8 @@ class CalendarGrid(wx.Panel):
             # Refresh display in case entries were added/modified
             self.refresh_display()
 
-    def _on_key_down(self, event: wx.KeyEvent) -> None:
-        """Handle keyboard navigation."""
+    def _on_char_hook(self, event: wx.KeyEvent) -> None:
+        """Handle keyboard navigation using CHAR_HOOK."""
         key_code = event.GetKeyCode()
         ctrl_down = event.ControlDown()
 
@@ -255,59 +257,93 @@ class CalendarGrid(wx.Panel):
             event.Skip()
             return
 
-        # Find the index of the focused button
-        try:
-            current_index = self.day_buttons.index(focused_btn)
-        except ValueError:
-            event.Skip()
-            return
-
-        new_index = current_index
+        current_date = focused_btn.day_date
+        new_date = None
 
         # Month navigation with Ctrl+Up/Down
         if ctrl_down and key_code == wx.WXK_UP:
-            self.change_month(-1)
-            # Try to keep focus on the same day button
-            if current_index < len(self.day_buttons):
-                self.day_buttons[current_index].SetFocus()
+            self._navigate_month(-1, current_date)
             return
         elif ctrl_down and key_code == wx.WXK_DOWN:
-            self.change_month(1)
-            if current_index < len(self.day_buttons):
-                self.day_buttons[current_index].SetFocus()
+            self._navigate_month(1, current_date)
+            return
+
+        # Year navigation with Page Up/Down
+        if key_code == wx.WXK_PAGEUP:
+            self._navigate_year(-1, current_date)
+            return
+        elif key_code == wx.WXK_PAGEDOWN:
+            self._navigate_year(1, current_date)
             return
 
         # Day navigation
         if key_code == wx.WXK_LEFT:
-            new_index = current_index - 1
+            # Previous day
+            new_date = current_date - timedelta(days=1)
         elif key_code == wx.WXK_RIGHT:
-            new_index = current_index + 1
+            # Next day
+            new_date = current_date + timedelta(days=1)
         elif key_code == wx.WXK_UP:
-            new_index = current_index - 7  # Move up one week
+            # Previous week
+            new_date = current_date - timedelta(days=7)
         elif key_code == wx.WXK_DOWN:
-            new_index = current_index + 7  # Move down one week
+            # Next week
+            new_date = current_date + timedelta(days=7)
         else:
             event.Skip()
             return
 
-        # Ensure the new index is valid
-        visible_buttons = [btn for btn in self.day_buttons if btn.IsShown()]
-        if 0 <= new_index < len(visible_buttons):
-            visible_buttons[new_index].SetFocus()
-        else:
-            # If we go out of bounds, change the month
-            if new_index < 0:
-                self.change_month(-1)
-                # Focus on last visible button
-                visible_buttons = [btn for btn in self.day_buttons if btn.IsShown()]
-                if visible_buttons:
-                    visible_buttons[-1].SetFocus()
-            elif new_index >= len(visible_buttons):
-                self.change_month(1)
-                # Focus on first visible button
-                visible_buttons = [btn for btn in self.day_buttons if btn.IsShown()]
-                if visible_buttons:
-                    visible_buttons[0].SetFocus()
+        # Navigate to the new date
+        if new_date:
+            self._navigate_to_date(new_date)
+
+    def _navigate_to_date(self, target_date: date) -> None:
+        """Navigate to a specific date, changing month if necessary."""
+        # Check if we need to change the displayed month
+        if target_date.month != self.current_date.month or target_date.year != self.current_date.year:
+            self.current_date = date(target_date.year, target_date.month, 1)
+            self._update_calendar_display()
+
+        # Find and focus the button for the target date
+        for btn in self.day_buttons:
+            if btn.IsShown() and btn.day_date == target_date:
+                btn.SetFocus()
+                break
+
+    def _navigate_month(self, offset: int, current_date: date) -> None:
+        """Navigate to the next or previous month, keeping the same day if possible."""
+        month = current_date.month + offset
+        year = current_date.year
+        day = current_date.day
+
+        while month > 12:
+            month -= 12
+            year += 1
+        while month < 1:
+            month += 12
+            year -= 1
+
+        # Handle day overflow (e.g., Jan 31 -> Feb 28)
+        import calendar as cal
+        max_day = cal.monthrange(year, month)[1]
+        day = min(day, max_day)
+
+        target_date = date(year, month, day)
+        self._navigate_to_date(target_date)
+
+    def _navigate_year(self, offset: int, current_date: date) -> None:
+        """Navigate to the next or previous year, keeping the same month and day if possible."""
+        year = current_date.year + offset
+        month = current_date.month
+        day = current_date.day
+
+        # Handle leap year case (Feb 29 -> Feb 28)
+        import calendar as cal
+        max_day = cal.monthrange(year, month)[1]
+        day = min(day, max_day)
+
+        target_date = date(year, month, day)
+        self._navigate_to_date(target_date)
 
     def change_month(self, offset: int) -> None:
         """Change the displayed month by the given offset."""

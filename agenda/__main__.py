@@ -1,4 +1,5 @@
 """Main entry point for the agenda application."""
+
 import wx
 
 from agenda.ui.main_window import MainWindow
