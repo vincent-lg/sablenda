@@ -37,7 +37,7 @@ class DayButtonAccessible(wx.Accessible):
             i18n = get_i18n()
 
             # Format date using i18n
-            accessible_text = i18n.format_date_full(self.button.day_date)
+            accessible_text = i18n.format_date_full(self.button.day_date, capitalize=True)
 
             # Add entry count if present
             if self.button.entry_count > 0:
@@ -110,7 +110,7 @@ class DayButton(wx.Button):
         self.SetLabel(str(self.day_date.day))
 
         # Set tooltip (the accessible name is handled by DayButtonAccessible)
-        tooltip_text = i18n.format_date_full(self.day_date)
+        tooltip_text = i18n.format_date_full(self.day_date, capitalize=True)
 
         # Add entry count if present
         if self.entry_count > 0:

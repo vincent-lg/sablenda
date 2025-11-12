@@ -5,6 +5,7 @@ from datetime import date, time
 from pathlib import Path
 from typing import Any
 
+from babel.dates import format_date
 from fluent.runtime import FluentLocalization, FluentResourceLoader
 
 from sablenda.settings import Settings
@@ -61,66 +62,55 @@ class I18n:
         if locale_code in self._bundles:
             self._current_locale = locale_code
 
-    def format_date_full(self, date_obj: date) -> str:
+    def format_date_full(
+        self, date_obj: date, capitalize: bool = False
+    ) -> str:
         """Format a date in the full format for the current locale.
 
-        English: "Monday, November 4th, 2025"
-        French: "Lundi 1 novembre 2025"
+        Uses Babel's CLDR data for proper locale-specific formatting.
+        Capitalizes the first letter for UI presentation (labels/headers).
+        English: "monday, November 4, 2025"
+        French: "lundi 4 novembre 2025"
+        If `capitalize` is True, capitalize the return string.
 
         """
-        weekday = self.translate(f"day-name-{date_obj.weekday()}")
-        month = self.translate(f"month-name-{date_obj.month}")
-        day = date_obj.day
-        year = date_obj.year
+        formatted = format_date(date_obj, format='full', locale=self._current_locale)
 
-        # Get ordinal suffix (empty for French)
-        if day in (1, 21, 31):
-            ordinal = self.translate("ordinal-1")
-        elif day in (2, 22):
-            ordinal = self.translate("ordinal-2")
-        elif day in (3, 23):
-            ordinal = self.translate("ordinal-3")
-        else:
-            ordinal = self.translate("ordinal-other")
+        if capitalize:
+            formatted = (
+                formatted[0].upper() + formatted[1:]
+                if formatted
+                else formatted
+            )
 
-        return self.translate(
-            "date-full",
-            weekday=weekday,
-            month=month,
-            day=str(day),
-            ordinal=ordinal,
-            year=str(year),
-        )
+        return formatted
 
     def format_date_dialog_title(self, date_obj: date) -> str:
         """Format a date for dialog titles.
 
-        English: "Monday, November 04, 2025"
-        French: "Lundi 1 novembre 2025"
+        Uses Babel's CLDR data for proper locale-specific formatting.
+        English: "monday, November 4, 2025"
+        French: "lundi 4 novembre 2025"
 
         """
-        weekday = self.translate(f"day-name-{date_obj.weekday()}")
-        month = self.translate(f"month-name-{date_obj.month}")
-        day = date_obj.day
-        year = date_obj.year
-
-        return self.translate(
-            "date-dialog-title",
-            weekday=weekday,
-            month=month,
-            day=str(day),
-            year=str(year),
-        )
+        formatted = format_date(date_obj, format='full', locale=self._current_locale)
+        return formatted
 
     def format_month_year(self, month: int, year: int) -> str:
         """Format month and year for calendar header.
 
+        Uses Babel's CLDR data for proper locale-specific formatting.
+        Capitalizes the first letter for UI presentation (calendar header).
         English: "November 2025"
         French: "Novembre 2025"
 
         """
-        month_name = self.translate(f"month-name-{month}")
-        return self.translate("date-month-year", month=month_name, year=str(year))
+        # Create a date object for the first day of the month
+        date_obj = date(year, month, 1)
+        # Use a custom pattern that only shows month and year
+        formatted = format_date(date_obj, format='MMMM y', locale=self._current_locale)
+
+        return formatted[0].upper() + formatted[1:] if formatted else formatted
 
 
 # Global instance (will be initialized in main)
