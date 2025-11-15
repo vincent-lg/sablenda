@@ -20,6 +20,8 @@ class CalendarData:
         """
         self.repository = repository
         self._entries_cache: list[Entry] | None = None
+        # Cache for optimized month view: (start_date, end_date) -> dict[date, list[Entry]]
+        self._date_range_cache: tuple[tuple[date, date], dict[date, list[Entry]]] | None = None
 
     @property
     def entries(self) -> list[Entry]:
@@ -52,6 +54,10 @@ class CalendarData:
         else:
             self._entries_cache = value
 
+    def _invalidate_cache(self) -> None:
+        """Invalidate the date range cache when entries are modified."""
+        self._date_range_cache = None
+
     def add_entry(self, entry: Entry) -> None:
         """Add an entry to the calendar."""
         if self.repository is not None:
@@ -61,6 +67,7 @@ class CalendarData:
             if self._entries_cache is None:
                 self._entries_cache = []
             self._entries_cache.append(entry)
+        self._invalidate_cache()
 
     def remove_entry(self, entry_id: UUID) -> bool:
         """Remove an entry by ID. Returns True if found and removed."""
@@ -68,6 +75,7 @@ class CalendarData:
             result = self.repository.remove(entry_id)
             if result:
                 self.repository.save_changes()
+                self._invalidate_cache()
             return result
         else:
             if self._entries_cache is None:
@@ -75,6 +83,7 @@ class CalendarData:
             for i, entry in enumerate(self._entries_cache):
                 if entry.id == entry_id:
                     self._entries_cache.pop(i)
+                    self._invalidate_cache()
                     return True
             return False
 
@@ -96,6 +105,7 @@ class CalendarData:
             result = self.repository.update(entry)
             if result:
                 self.repository.save_changes()
+                self._invalidate_cache()
             return result
         else:
             if self._entries_cache is None:
@@ -103,6 +113,7 @@ class CalendarData:
             for i, existing in enumerate(self._entries_cache):
                 if existing.id == entry.id:
                     self._entries_cache[i] = entry
+                    self._invalidate_cache()
                     return True
             return False
 
@@ -156,3 +167,43 @@ class CalendarData:
             current += timedelta(days=1)
 
         return days
+
+    def get_entries_for_date_range(self, start_date: date, end_date: date) -> dict[date, list[Entry]]:
+        """Get all entries that occur within a date range, mapped by date.
+
+        This is an optimized batch operation that uses caching to avoid
+        redundant calculations when viewing the same date range.
+
+        Args:
+            start_date: The start of the date range (inclusive)
+            end_date: The end of the date range (inclusive)
+
+        Returns:
+            Dictionary mapping each date in the range to a list of entries
+            occurring on that date. Dates with no entries will not be in the dict.
+
+        """
+        # Check if we have a cached result for this exact range
+        if self._date_range_cache is not None:
+            cached_range, cached_result = self._date_range_cache
+            if cached_range == (start_date, end_date):
+                return cached_result
+
+        # Not in cache, compute the result
+        if self.repository is not None:
+            result = self.repository.get_entries_for_date_range(start_date, end_date)
+        else:
+            # Fallback for in-memory mode
+            result: dict[date, list[Entry]] = {}
+            entries = self.entries
+            current_date = start_date
+            while current_date <= end_date:
+                entries_for_date = [entry for entry in entries if entry.occurs_on(current_date)]
+                if entries_for_date:
+                    result[current_date] = entries_for_date
+                current_date += timedelta(days=1)
+
+        # Cache the result
+        self._date_range_cache = ((start_date, end_date), result)
+
+        return result

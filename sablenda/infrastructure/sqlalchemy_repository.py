@@ -5,7 +5,7 @@ SQLAlchemy for persistence to a SQLite database.
 
 """
 
-from datetime import date
+from datetime import date, timedelta
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -93,6 +93,30 @@ class SqlAlchemyCalendarRepository(ICalendarRepository):
         # Get all entries and filter using the domain logic
         all_entries = self.get_all()
         return [entry for entry in all_entries if entry.occurs_on(check_date)]
+
+    def get_entries_for_date_range(self, start_date: date, end_date: date) -> dict[date, list[Entry]]:
+        """Get all entries that occur within a date range, mapped by date."""
+        self._ensure_session()
+
+        # Initialize the result dictionary
+        result: dict[date, list[Entry]] = {}
+
+        # Get all entries once
+        all_entries = self.get_all()
+
+        # For each entry, determine which dates it occurs on within the range
+        for entry in all_entries:
+            # Iterate through each date in the range
+            current_date = start_date
+            while current_date <= end_date:
+                if entry.occurs_on(current_date):
+                    # Add this entry to the list for this date
+                    if current_date not in result:
+                        result[current_date] = []
+                    result[current_date].append(entry)
+                current_date += timedelta(days=1)
+
+        return result
 
     def save_changes(self) -> None:
         """Persist any pending changes to the database."""

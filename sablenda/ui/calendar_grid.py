@@ -196,6 +196,14 @@ class CalendarGrid(wx.Panel):
             self.current_date.month
         )
 
+        # Batch fetch all entries for the date range - this is the key optimization!
+        # Instead of calling get_entry_count_for_date 42 times (once per day),
+        # we fetch all entries for all days in one operation
+        if days:
+            entries_by_date = self.calendar_data.get_entries_for_date_range(days[0], days[-1])
+        else:
+            entries_by_date = {}
+
         # Update each button
         for i, day_date in enumerate(days):
             if i < len(self.day_buttons):
@@ -212,8 +220,8 @@ class CalendarGrid(wx.Panel):
                 else:
                     btn.SetForegroundColour(wx.NullColour)
 
-                # Update entry count and accessible labels (this also sets the visual label)
-                entry_count = self.calendar_data.get_entry_count_for_date(day_date)
+                # Get entry count from the batched result
+                entry_count = len(entries_by_date.get(day_date, []))
                 btn.set_entry_count(entry_count)
 
                 btn.Show()

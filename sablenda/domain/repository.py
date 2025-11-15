@@ -89,6 +89,24 @@ class ICalendarRepository(ABC):
         pass
 
     @abstractmethod
+    def get_entries_for_date_range(self, start_date: date, end_date: date) -> dict[date, list[Entry]]:
+        """Get all entries that occur within a date range, mapped by date.
+
+        This is an optimized batch operation that retrieves all entries once
+        and maps them to each date they occur on within the range.
+
+        Args:
+            start_date: The start of the date range (inclusive)
+            end_date: The end of the date range (inclusive)
+
+        Returns:
+            Dictionary mapping each date in the range to a list of entries
+            occurring on that date. Dates with no entries will not be in the dict.
+
+        """
+        pass
+
+    @abstractmethod
     def save_changes(self) -> None:
         """Persist any pending changes to the data store.
 
