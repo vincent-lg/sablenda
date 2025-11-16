@@ -90,3 +90,10 @@ preferences-language-label = Langue :
 preferences-language-auto = Automatique (Langue du système)
 preferences-language-en = Anglais
 preferences-language-fr = Français
+
+# Menu d'icône de plateau
+tray-show = Afficher Sablenda
+tray-show-help = Afficher la fenêtre de l'application
+tray-today-entries = Entrées d'aujourd'hui
+tray-today-entries-help = Entrées pour aujourd'hui
+tray-no-entries = Pas d'entrées aujourd'hui

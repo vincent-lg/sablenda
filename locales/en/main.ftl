@@ -90,3 +90,10 @@ preferences-language-label = Language:
 preferences-language-auto = Automatic (system default)
 preferences-language-en = English
 preferences-language-fr = French
+
+# Tray icon menu
+tray-show = Show Sablenda
+tray-show-help = Display the application window
+tray-today-entries = Today's Entries
+tray-today-entries-help = Entries for today
+tray-no-entries = No entries today

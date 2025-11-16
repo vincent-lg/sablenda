@@ -15,10 +15,16 @@ from sablenda.ui.preferences_dialog import PreferencesDialog
 class MainWindow(wx.Frame):
     """Main application window."""
 
-    def __init__(self, settings: Settings):
-        """Initialize the main window."""
+    def __init__(self, settings: Settings, tray_mode: bool = False):
+        """Initialize the main window.
+
+        Args:
+            settings: Application settings
+            tray_mode: If True, window hides instead of closing (for tray mode)
+        """
         self.settings = settings
         self.i18n = get_i18n()
+        self.tray_mode = tray_mode
 
         super().__init__(
             None,
@@ -114,7 +120,7 @@ class MainWindow(wx.Frame):
             )
 
     def _on_close(self, event: wx.Event) -> None:
-        """Handle window close - ensure data is saved and exit."""
+        """Handle window close - hide if in tray mode, exit otherwise."""
         try:
             # Ensure any pending changes are saved
             self.repository.save_changes()
@@ -130,7 +136,14 @@ class MainWindow(wx.Frame):
                 event.Veto()
                 return
 
-        self.Destroy()
+        # In tray mode: hide the window instead of destroying it
+        # The tray icon remains visible and can show the window again
+        if self.tray_mode:
+            event.Veto()
+            self.Hide()
+        else:
+            # Normal mode: destroy the window and exit
+            self.Destroy()
 
     def _on_preferences(self, event: wx.Event) -> None:
         """Show preferences dialog."""
